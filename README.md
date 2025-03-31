@@ -6,7 +6,7 @@ Simple utility tool that listens to wave shared memory, and publishes all info o
 
 ### Option 1: executable
 
-Download the executable [here](). 
+Download the executable [here](https://drive.google.com/drive/folders/1FMsF_-S9ynNMQGosLA4iAWDcLVHeGb5K?usp=drive_link). 
 
 
 ### Option 2: source code
