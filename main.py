@@ -1,10 +1,13 @@
 import time
 import json
 import socket
+import logging
 import paho.mqtt.client as mqtt
 from src.pyaccsharedmemory import accSharedMemory, ACC_STATUS
 from src.schemas import ACC_EVENTS
 from src.utils import strip_nulls_from_dataclass, Config
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 class MqttPublisher:
@@ -32,17 +35,17 @@ class MqttPublisher:
         """
         if rc == 0:
             self._connected = True
-            print("[MQTT] Connected successfully.")
+            logging.info("[MQTT] Connected successfully.")
         else:
             self._connected = False
-            print(f"[MQTT] Connection failed with code {rc}.")
+            logging.info(f"[MQTT] Connection failed with code {rc}.")
 
     def _on_disconnect(self, client, userdata, flags, rc, properties=None):
         """
         Callback or when the client disconnects from the broker.
         """
         self._connected = False
-        print("[MQTT] Disconnected. Will retry...")
+        logging.info("[MQTT] Disconnected. Will retry...")
 
     @property
     def is_connected(self):
@@ -56,9 +59,9 @@ class MqttPublisher:
             try:
                 self.client.connect(self.host, self.port, 60)
                 self.client.loop_start()
-                print("[MQTT] Attempting connection...")
+                logging.info("[MQTT] Attempting connection...")
             except Exception as e:
-                print(f"[MQTT] MQTT connection failed: {e}")
+                logging.info(f"[MQTT] MQTT connection failed: {e}")
                 time.sleep(10)
 
     def publish_event(self, data: dict):
@@ -71,7 +74,7 @@ class MqttPublisher:
             payload = json.dumps(data)
             self.client.publish(self.event_topic, payload)
         except Exception as e:
-            print(f"[MQTT] Event publish failed: {e}")
+            logging.info(f"[MQTT] Event publish failed: {e}")
             self._force_reconnect()
 
     def publish_telemetry(self, data: dict):
@@ -84,7 +87,7 @@ class MqttPublisher:
             payload = json.dumps(data)
             self.client.publish(self.telemetry_topic, payload)
         except Exception as e:
-            print(f"[MQTT] Telemetry publish failed: {e}")
+            logging.info(f"[MQTT] Telemetry publish failed: {e}")
             self._force_reconnect()
 
     def _force_reconnect(self):
@@ -178,7 +181,7 @@ class AccUdpMqttForwarder:
 
                     # If status changed, send an event message (UDP and/or MQTT)
                     if self.status != prev_status and sm is not None:
-                        print("New status: ", self.status)
+                        logging.info(f"Status change {self.status}")
                         static_info["air_temp"] = physics_info.get("air_temp")
                         static_info["road_temp"] = physics_info.get("road_temp")
                         static_info["water_temp"] = physics_info.get("water_temp")
@@ -230,7 +233,7 @@ class AccUdpMqttForwarder:
         self.asm.close()
         self.sock.close()
         self.mqtt_pub.close()
-        print("Exiting cleanly...")
+        logging.info("Exiting cleanly...")
 
 
 if __name__ == "__main__":

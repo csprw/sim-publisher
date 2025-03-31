@@ -19,13 +19,14 @@ python -m src.main
 
 ## Usage
 
-1. Start the app
-2. Disable / enable mqtt and/or udp streaming in [config.yaml](config.yaml).
+
+1. Disable / enable mqtt and/or udp streaming in [config.yaml](config.yaml).
+2. Start the app
 3. Listen to the ports defined in [config.yaml](config.yaml). 
 
 
 ## MQTT topics
-MQTT publishes to `acc/events` when game state changes. For instance when a game is paused, resumed, started, or stopped. 
+MQTT publishes to `acc/events` when game state changes. Telemetry is published to `acc/telemetry`.
 
 Example `acc/events`:
 ```
