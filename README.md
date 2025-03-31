@@ -1,4 +1,4 @@
-# Ferrari publisher
+# Simulator MQTT / UDP publisher
 
 Simple utility tool that listens to wave shared memory, and publishes all info over UDP. 
 
