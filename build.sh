@@ -7,13 +7,13 @@ echo "Installing/Upgrading PyInstaller..."
 pip install --upgrade pyinstaller
 
 echo "Creating single-file executable with PyInstaller..."
-pyinstaller --onefile main.py
+pyinstaller --onefile server.py
 
 echo "Moving config.yaml into the dist/ folder..."
 cp config.yaml dist/
 
 echo "Removing .spec file..."
-rm -f main.spec
+rm -f server.spec
 
 echo "Removing build/ folder..."
 rm -rf build/

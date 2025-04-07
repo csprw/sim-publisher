@@ -2,6 +2,9 @@ from dataclasses import is_dataclass, fields
 import enum
 from typing import Any
 import yaml
+import os
+import sys
+import logging
 
 
 def strip_nulls_from_dataclass(dc):
@@ -14,7 +17,7 @@ def strip_nulls_from_dataclass(dc):
     for f in fields(dc):
         value = getattr(dc, f.name)
         if isinstance(value, str):
-            setattr(dc, f.name, value.rstrip("\x00"))
+            setattr(dc, f.name, value.replace("\x00", ""))
         elif is_dataclass(value):
             strip_nulls_from_dataclass(value)
         elif isinstance(value, list):
@@ -52,9 +55,29 @@ class Config:
 
     _instance = None
 
+    # def __new__(cls, config_path="config.yaml"):
+    #     if cls._instance is None:
+    #         with open(config_path, "r") as file:
+    #             cls._instance = super(Config, cls).__new__(cls)
+    #             cls._instance.config_data = yaml.safe_load(file)
+    #     return cls._instance
+
     def __new__(cls, config_path="config.yaml"):
         if cls._instance is None:
-            with open(config_path, "r") as file:
+            # If running in a PyInstaller bundle, use the directory of the executable
+            if getattr(sys, "frozen", False):
+                base_dir = os.path.dirname(sys.executable)
+                config_file_path = os.path.join(base_dir, config_path)
+                logging.info(f"Loading config in frozen state: {config_file_path}")
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+
+                # Get the parent directory (one level up)
+                parent_dir = os.path.dirname(base_dir)
+                config_file_path = os.path.join(parent_dir, config_path)
+                logging.info(f"Loading config in coding state: {config_file_path}")
+
+            with open(config_file_path, "r") as file:
                 cls._instance = super(Config, cls).__new__(cls)
                 cls._instance.config_data = yaml.safe_load(file)
         return cls._instance

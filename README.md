@@ -14,25 +14,25 @@ Download the executable [here](https://drive.google.com/drive/folders/1FMsF_-S9y
 ```
 # python 3.12
 pip install -r requirements.txt
-python -m src.main
+python -m src.server
 ```
 
 ## Usage
 
 
-1. Disable / enable mqtt and/or udp streaming in [config.yaml](config.yaml).
+1. Add the right IP of server in [config.yaml](config.yaml).
 2. Start the app
 3. Listen to the ports defined in [config.yaml](config.yaml). 
 
 
 ## MQTT topics
-MQTT publishes to `acc/events` when game state changes. Telemetry is published to `acc/telemetry`.
+MQTT publishes to `ac/events` when game state changes. Telemetry is published to `ac/telemetry`.
 
-Example `acc/events`:
+Example `ac/events`:
 ```
 {
     "message_type": "event_change",
-    "event": "resume_race",
+    "event": "pause_race",
     "static_info": {
         "sm_version": "1.7",
         "ac_version": "1.16.4",
@@ -44,37 +44,65 @@ Example `acc/events`:
         "player_surname": "some-name",
         "player_nick": "some-name",
         "sector_count": 3,
+        "max_torque": 261.0,
+        "max_power": 306365.28125,
         "max_rpm": 12100,
         "max_fuel": 200.0,
-        "penalty_enabled": true,
-        "aid_fuel_rate": 1.0,
+        "suspension_max_travel": (
+            0.09000000357627869,
+            0.09000000357627869,
+            0.10500000417232513,
+            0.10500000417232513,
+        ),
+        "tyre_radius": (
+            0.2540000081062317,
+            0.2540000081062317,
+            0.33000001311302185,
+            0.33000001311302185,
+        ),
+        "max_turbo_boost": 0.0,
+        "penalty_enabled": True,
+        "aid_fuel_rate": 0.0,
         "aid_tyre_rate": 1.0,
-        "aid_mechanical_damage": 1.0,
+        "aid_mechanical_damage": 0.0,
+        "allow_tyre_blankets": 1,
         "aid_stability": 0.0,
-        "aid_auto_clutch": true,
+        "aid_auto_clutch": True,
+        "aid_auto_blip": 1,
+        "has_drs": 0,
+        "has_ers": 0,
+        "has_kers": 0,
+        "ker_max_joules": 0.0,
+        "engine_brake_settings_count": 0,
+        "ers_power_controller_count": 0,
+        "track_sp_line_length": 5758.66064453125,
+        "track_configuration": "",
+        "ers_max_j": 0.0,
+        "is_timed_race": 0,
+        "has_extra_lap": 0,
+        "car_skin": "0_racing_12",
+        "reversed_grid_positions": 0,
         "pit_window_start": 0,
         "pit_window_end": 0,
-        "is_online": false,
-        "dry_tyres_name": "",
-        "wet_tyres_name": "",
         "air_temp": 12.0,
-        "road_temp": 13.0,
-        "water_temp": 0.0,
-        "tyre_compound": "Hard GP70 (H)"
-    }
+        "road_temp": 10.0,
+        "water_temp": None,
+        "tyre_compound": "Hard GP70 (H)",
+    },
 }
+
 ```
 
 
 
-Example `acc/telemetry`:
+Example `ac/telemetry`:
 ```
 {
     "message_type": "telemetry",
     "graphics_info": {
         "packed_id": 166167,
-        "status": "ACC_LIVE",
-        "session_type": "ACC_HOTLAP",
+        "status": "AC_LIVE",
+        "session_type": "AC_HOTLAP",
         "current_time_str": "3:11:742",
         "last_time_str": "-:--:---",
         "best_time_str": "-:--:---",
@@ -105,187 +133,136 @@ Example `acc/telemetry`:
 
 ## DataClass
 
-Description are moslty a copy past of the ACCSharedMemoryDocumentationV1.x.x.pdf
+Descriptions
 
-### ACC_map
 
-| Field    | Type                        | Description                                                                                                                                                      |
-| -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Physics  | [PhysicsMap](#physicsmap)   | Data that change at each graphic step. They all refer to the player’s car.                                                                                       |
-| Graphics | [GraphicsMap](#graphicsmap) | Data that are updated at each graphical step. They mostly refer to player’s car except for carCoordinates and carID, which refer to the cars currently on track. |
-| Statics  | [StaticsMap](#staticsmap)   | Data that are initialized when the instance starts and never changes until the instance is closed.                                                               |
+## AC_map
 
-### PhysicsMap
+| Field    | Type                        | Description                                                                                 |
+| -------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| Physics  | [PhysicsMap](#physicsmap)   | Real-time car physics data updated at each physics tick.                                   |
+| Graphics | [GraphicsMap](#graphicsmap) | Visual/UI-related data updated at each graphics tick.                                       |
+| Static   | [StaticsMap](#staticsmap)   | Session and vehicle data that remain static once loaded.                                    |
 
-| Field                | Type                              | Description                                      | Comment                        |
-| -------------------- | --------------------------------- | ------------------------------------------------ | ------------------------------ |
-| packed_id            | int                               | Current step index                               |                                |
-| gas                  | float                             | Gas pedal input value                            | From 0.0 to 1.0                |
-| brake                | float                             | Brake pedal input value                          | From 0.0 to 1.0                |
-| fuel                 | float                             | Amount of fuel remaining in liters               |                                |
-| gear                 | int                               | Current gear                                     |                                |
-| rpm                  | int                               | engine rpm                                       |                                |
-| steer_angle          | float                             | Steering input value                             | From 0.0 to 1.0                |
-| speed_kmh            | float                             | Car speed                                        |                                |
-| velocity             | [Vector3f](#vector3f)             | Car velocity vector in global coordinates        | Contain 3 floats x, y, z       |
-| g_force              | [Vector3f](#vector3f)             | Car acceleration vector in global coordinates    | Contain 3 floats x, y, z       |
-| wheel_slip           | [Wheels](#wheels)                 | Tyre slip for each tyre                          |                                |
-| wheel_pressure       | [Wheels](#wheels)                 | Tyre pressure                                    |                                |
-| wheel_angular_s      | [Wheels](#wheels)                 | Wheel angular speed in rad/s                     |                                |
-| tyre_core_temp       | [Wheels](#wheels)                 | Tyre rubber core temperature                     |                                |
-| suspension_travel    | [Wheels](#wheels)                 | Suspension travel                                |                                |
-| tc                   | float                             | TC in action                                     |                                |
-| heading              | float                             | Car yaw orientation                              |                                |
-| pitch                | float                             | Car pitch orientation                            |                                |
-| roll                 | float                             | Car roll orientation                             |                                |
-| car_damage           | [CarDamage](#cardamage)           | Car damage                                       |                                |
-| pit_limiter_on       | bool                              | Pit limiter is on                                |                                |
-| abs                  | float                             | ABS in action                                    |                                |
-| autoshifter_on       | bool                              | Automatic transmission on                        |                                |
-| turbo_boost          | float                             | Car turbo level                                  |                                |
-| air_temp             | float                             | Air temperature                                  |                                |
-| road_temp            | float                             | Road temperature                                 |                                |
-| local_angular_vel    | [Vector3f](#vector3f)             | Car angular velocity vector in local coordinates | Contain 3 floats x, y, z       |
-| final_ff             | float                             | Force feedback signal                            |                                |
-| brake_temp           | [Wheels](#wheels)                 | Brake discs temperatures                         |                                |
-| clutch               | float                             | Clutch pedal input value                         | From 0.0 to 1.0                |
-| is_ai_controlled     | bool                              | Car is controlled by the AI                      |                                |
-| tyre_contact_point   | List of [ContactPoint](#vector3f) | Tyre contact point global coordinates            |                                |
-| tyre_contact_normal  | List of [ContactPoint](#vector3f) | Tyre contact normal                              |                                |
-| tyre_contact_heading | List of [ContactPoint](#vector3f) | Tyre contact heading                             |                                |
-| brake_bias           | float                             | Front brake bias                                 |                                |
-| local_velocity       | [Vector3f](#vector3f)             | Car velocity vector in local coordinates         |                                |
-| slit_ratio           | [Wheels](#wheels)                 | Tyre slip ratio                                  |                                |
-| slit_angle           | [Wheels](#wheels)                 | Tyre slip angle                                  |                                |
-| suspension_damage    | [Wheels](#wheels)                 | Damage of the suspension                         | From 0.0 to 0.1 (x30 for in s) |
-| water_temp           | float                             | Water Temperature                                |                                |
-| brake_pressure       | float                             | Brake pressure                                   |                                |
-| front_brake_compound | int                               | Brake pad compund front                          |                                |
-| rear_brake_compound  | int                               | Brake pad compund rear                           |                                |
-| pad_life             | [Wheels](#wheels)                 | Brake pad wear                                   | Pad start at 29mm              |
-| disc_life            | [Wheels](#wheels)                 | Brake disk wear                                  | Disc start at 32mm             |
-| ignition_on          | bool                              | Ignition is on                                   |                                |
-| starter_engine_on    | bool                              | Engine starter on                                |                                |
-| is_engine_running    | bool                              | Engine running                                   |                                |
-| kerb_vibration       | float                             | Kerb vibrations sent to the FFB                  |                                |
-| slip_vibration       | float                             | Slip vibrations sent to the FFB                  |                                |
-| g_vibration          | float                             | G force vibrations sent to the FFB               |                                |
-| abs_vibration        | float                             | Abs vibrations sent to the FFB                   |                                |
+## PhysicsMap
 
-### GraphicsMap
+| Field                | Type                  | Description                                                                 |
+|----------------------|-----------------------|-----------------------------------------------------------------------------|
+| packed_id            | int                   | Step ID of the physics update.                                              |
+| gas                  | float                 | Gas pedal input (0.0 to 1.0).                                               |
+| brake                | float                 | Brake input (0.0 to 1.0).                                                   |
+| fuel                 | float                 | Remaining fuel in liters.                                                  |
+| gear                 | int                   | Current gear.                                                              |
+| rpm                  | int                   | Engine RPM.                                                                |
+| steer_angle          | float                 | Steering input.                                                            |
+| speed_kmh            | float                 | Car speed in km/h.                                                         |
+| velocity             | [Vector3f](#vector3f) | Global velocity vector.                                                    |
+| g_force              | [Vector3f](#vector3f) | Acceleration vector (G-force) in global space.                             |
+| wheel_slip           | [Wheels](#wheels)     | Tyre slip per wheel.                                                       |
+| wheel_pressure       | [Wheels](#wheels)     | Tyre pressure per wheel.                                                   |
+| wheel_angular_s      | [Wheels](#wheels)     | Wheel angular speed (rad/s).                                               |
+| tyre_core_temp       | [Wheels](#wheels)     | Tyre core temperature.                                                     |
+| suspension_travel    | [Wheels](#wheels)     | Suspension travel.                                                         |
+| drs                  | float                 | Drag reduction system level.                                               |
+| tc                   | float                 | Traction control activity.                                                 |
+| heading              | float                 | Yaw angle.                                                                 |
+| pitch                | float                 | Pitch angle.                                                               |
+| roll                 | float                 | Roll angle.                                                                |
+| car_damage           | [CarDamage](#cardamage) | Car damage on all sides.                                                   |
+| pit_limiter_on       | bool                  | Is pit limiter active.                                                     |
+| abs                  | float                 | ABS activity.                                                              |
+| autoshifter_on       | bool                  | Is automatic shifting enabled.                                             |
+| turbo_boost          | float                 | Turbo boost level.                                                         |
+| air_temp             | float                 | Ambient temperature.                                                       |
+| road_temp            | float                 | Track surface temperature.                                                 |
+| local_angular_vel    | [Vector3f](#vector3f) | Angular velocity in local car coordinates.                                 |
+| final_ff             | float                 | Final force feedback output.                                               |
+| brake_temp           | [Wheels](#wheels)     | Brake temperature per wheel.                                               |
+| clutch               | float                 | Clutch input.                                                              |
+| is_ai_controlled     | bool                  | Whether AI controls the car.                                               |
+| tyre_contact_point   | [ContactPoint](#contactpoint) | Tyre contact points in world space.                                        |
+| tyre_contact_normal  | [ContactPoint](#contactpoint) | Tyre contact normals.                                                      |
+| tyre_contact_heading | [ContactPoint](#contactpoint) | Tyre contact heading directions.                                           |
+| brake_bias           | float                 | Front brake bias.                                                          |
+| local_velocity       | [Vector3f](#vector3f) | Car velocity in local coordinates.                                         |
 
-| Field                        | Type                                            | Description                                   | Comment                                                                       |
-| ---------------------------- | ----------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
-| packed_id                    | int                                             | Current step index                            |                                                                               |
-| status                       | [ACC_STATUS](#acc_status)                       |                                               |                                                                               |
-| session_type                 | [ACC_SESSION_TYPE](#acc_session_type)           |                                               |                                                                               |
-| current_time_str             | string                                          | Current lap time in string                    | Limited to 15 char                                                            |
-| last_time_str                | string                                          | Last lap time in string                       | Limited to 15 char                                                            |
-| best_time_str                | string                                          | Best lap time in string                       | Limited to 15 char                                                            |
-| last_sector_time_str         | string                                          | Last split time in wide string                | Limited to 15 char                                                            |
-| completed_lap                | int                                             | Number of completed laps                      |                                                                               |
-| position                     | int                                             | Current player position                       |                                                                               |
-| current_time                 | int                                             | Current lap time in milliseconds              |                                                                               |
-| last_time                    | int                                             | Last lap time in milliseconds                 |                                                                               |
-| best_time                    | int                                             | Best lap time in milliseconds                 |                                                                               |
-| session_time_left            | float                                           | Session time left                             |                                                                               |
-| distance_traveled            | float                                           | Distance travelled in the current stint       |                                                                               |
-| is_in_pit                    | bool                                            | Car is pitting                                |                                                                               |
-| current_sector_index         | int                                             | Current track sector                          |                                                                               |
-| last_sector_time             | int                                             | Last sector time in milliseconds              |                                                                               |
-| number_of_laps               | int                                             | Number of completed laps                      | Only has a value when the session is over                                     |
-| tyre_compound                | string                                          | Tyre compound used                            |                                                                               |
-| normalized_car_position      | float                                           | Car position on track spline                  |                                                                               |
-| active_cars                  | int                                             | Number of cars on track                       |                                                                               |
-| car_coordinates              | List of [Vector3f](#vector3f)                   | Coordinates of cars on track                  | 60 car max                                                                    |
-| car_id                       | List of int                                     | Car IDs of cars on track                      | 60 car max                                                                    |
-| player_car_id                | int                                             | Player Car ID                                 |                                                                               |
-| penaltyTime                  | float                                           | Penalty time to wait                          |                                                                               |
-| flag                         | [ACC_FLAG_TYPE](#acc_flag_type)                 |                                               |                                                                               |
-| penalty                      | [ACC_PENALTY_TYPE](#acc_penalty_type)           |                                               | Added DSQ for driving the wrong way with value 22, 18 seems not used anymore. |
-| ideal_line_on                | bool                                            | Ideal line on                                 |                                                                               |
-| is_in_pit_lane               | bool                                            | Car is in pit lane                            |                                                                               |
-| mandatory_pit_done           | bool                                            | Mandatory pit is completed                    |                                                                               |
-| wind_speed                   | float                                           | Wind speed                                    | In m/s                                                                        |
-| wind_direction               | float                                           | wind direction                                | In Radian                                                                     |
-| is_setup_menu_visible        | bool                                            | Is in setup menu                              |                                                                               |
-| main_display_index           | int                                             | Current car main display index                |                                                                               |
-| secondary_display_index      | int                                             | Current car secondary display index           |                                                                               |
-| tc_level                     | int                                             | Traction control level                        |                                                                               |
-| tc_cut_level                 | int                                             | Traction control cut level                    |                                                                               |
-| engine_map                   | int                                             | Current engine map                            |                                                                               |
-| abs_level                    | int                                             | ABS level                                     |                                                                               |
-| fuel_per_lap                 | float                                           | Average fuel consumed per lap in liters       |                                                                               |
-| rain_light                   | bool                                            | Rain lights on                                |                                                                               |
-| flashing_light               | bool                                            | Flashing lights on                            |                                                                               |
-| light_stage                  | int                                             | Current lights stage                          |                                                                               |
-| exhaust_temp                 | float                                           | Exhaust temperature                           |                                                                               |
-| wiper_stage                  | int                                             | Current wiper stage                           |                                                                               |
-| driver_stint_total_time_left | int                                             | Time the driver is allowed to drive/race      | In millisecond                                                                |
-| driver_stint_time_left       | int                                             | Timethe driverisallowed to drive/stint        | In millisecond                                                                |
-| rain_tyres                   | bool                                            | Are rain tyres equipped                       |                                                                               |
-| session_index                | int                                             |                                               | idk wtf is this                                                               |
-| used_fuel                    | float                                           | Used fuel since last time refueling           |                                                                               |
-| delta_lap_time_str           | string                                          | Delta time in string                          |                                                                               |
-| delta_lap_time               | int                                             | Delta time time in milliseconds               |                                                                               |
-| estimated_lap_time_str       | string                                          | Estimated lap time in string                  |                                                                               |
-| estimated_lap_time           | int                                             | Estimated lap time in milliseconds            |                                                                               |
-| is_delta_positive            | bool                                            | Is delta positive                             |                                                                               |
-| last_sector_time             | int                                             | Last split time in milliseconds               |                                                                               |
-| is_valid_lap                 | bool                                            | Is Lap is valid for timing                    |                                                                               |
-| fuel_estimated_laps          | float                                           | Laps possible with current fuel level         |                                                                               |
-| track_status                 | string                                          | Track status                                  | Green, Fast, Optimum, Greasy, Damp, Wet, Flooded                              |
-| missing_mandatory_pits       | int                                             | Mandatory pitstops the player still has to do |                                                                               |
-| clock                        | int                                             | Time of day in secondso                       |                                                                               |
-| direction_light_left         | bool                                            | Is Blinker left on                            |                                                                               |
-| direction_light_right        | bool                                            | Is Blinker right on                           |                                                                               |
-| global_yellow                | bool                                            | Yellow Flag is out ?                          |                                                                               |
-| global_yellow_s1             | bool                                            | Yellow Flag in Sector 1 is out ?              |                                                                               |
-| global_yellow_s2             | bool                                            | Yellow Flag in Sector 2 is out ?              |                                                                               |
-| global_yellow_s3             | bool                                            | Yellow Flag in Sector 3 is out ?              |                                                                               |
-| global_white                 | bool                                            | White Flag is out ?                           |                                                                               |
-| global_green                 | bool                                            | Green Flag is out ?                           |                                                                               |
-| global_chequered             | bool                                            | CheckeredFlag is out ?                        |                                                                               |
-| global_red                   | bool                                            | RedFlag is out ?                              |                                                                               |
-| mfd_tyre_set                 | int                                             | Number of tyre set on the MFD                 |                                                                               |
-| mfd_fuel_to_add              | float                                           | How much fuel to add on the MFD               |                                                                               |
-| mfd_tyre_pressure            | [Wheels](#wheels)                               | Tyre pressure to add                          |                                                                               |
-| track_grip_status            | [ACC_TRACK_GRIP_STATUS](#acc_track_grip_status) | Track grip status                             |                                                                               |
-| rain_intensity               | [ACC_RAIN_INTENSITY](#acc_rain_intensity)       | Rain intensity                                |                                                                               |
-| rain_intensity_in_10min      | [ACC_RAIN_INTENSITY](#acc_rain_intensity)       | Rain intensity in 10 min                      |                                                                               |
-| rain_intensity_in_30min      | [ACC_RAIN_INTENSITY](#acc_rain_intensity)       | Rain intensity in 30 min                      |                                                                               |
-| current_tyre_set             | int                                             | Tyre Set currently in use                     |                                                                               |
-| strategy_tyre_set            | int                                             | Next tyre set per strategy                    | Original tyre set used for this strategy                                      |
-| gap_ahead                    | int                                             | Gap to the next car in ms                     |                                                                               |
-| gap_behind                   | int                                             | Gap to the previous car in ms                 |                                                                               |
+## GraphicsMap
 
-### StaticsMap
+| Field                    | Type                  | Description                                               |
+|--------------------------|-----------------------|-----------------------------------------------------------|
+| packet_id                | int                   | Step ID of the graphics update.                          |
+| status                   | [AC_STATUS](#ac_status) | Game status.                                              |
+| session_type             | [AC_SESSION_TYPE](#ac_session_type) | Current session type.                                |
+| current_time_str         | string                | Current lap time string.                                 |
+| last_time_str            | string                | Last lap time string.                                    |
+| best_time_str            | string                | Best lap time string.                                    |
+| split_str                | string                | Current split time string.                               |
+| completed_laps           | int                   | Completed lap count.                                     |
+| position                 | int                   | Current race position.                                   |
+| i_current_time           | int                   | Current lap time in ms.                                  |
+| i_last_time              | int                   | Last lap time in ms.                                     |
+| i_best_time              | int                   | Best lap time in ms.                                     |
+| session_time_left        | float                 | Remaining session time.                                  |
+| distance_traveled        | float                 | Distance driven in meters.                               |
+| is_in_pit                | bool                  | Is the car in the pit box.                               |
+| current_sector_index     | int                   | Current sector index (0, 1, 2).                           |
+| last_sector_time         | int                   | Time of the last completed sector in ms.                 |
+| number_of_laps           | int                   | Number of laps completed (end of session only).          |
+| tyre_compound            | string                | Current tyre compound.                                   |
+| replay_time_multiplier   | float                 | Replay speed multiplier.                                 |
+| normalized_car_position  | float                 | Spline-based position around the track (0.0 to 1.0).     |
+| car_coordinates          | [Vector3f](#vector3f) | Car position in world space.                             |
+| penalty_time             | float                 | Time penalty to serve.                                   |
+| flag                     | [AC_FLAG_TYPE](#ac_flag_type) | Current flag condition.                             |
+| ideal_line_on            | bool                  | Is ideal line visual aid enabled.                        |
+| is_in_pit_lane           | bool                  | Is the car within the pit lane.                          |
+| surface_grip             | float                 | Grip multiplier for the surface.                         |
+| mandatory_pit_done       | bool                  | Whether the mandatory pit stop has been completed.       |
 
-| Field                 | Type   | Description                 | Comment                    |
-| --------------------- | ------ | --------------------------- | -------------------------- |
-| sm_version            | string | Shared memory version       |                            |
-| ac_version            | string | Assetto Corsa version       |                            |
-| number_of_session     | int    | Number of sessions          |                            |
-| num_cars              | int    | Number of cars              |                            |
-| car_model             | string | Name of the car             | see [carmodel](#car-model) |
-| track                 | string | Track name                  |                            |
-| player_name           | string | Player name                 |                            |
-| player_surname        | string | Player surname              |                            |
-| player_nick           | string | Player nickname             |                            |
-| sector_count          | int    | Number of sectors           |                            |
-| max_rpm               | int    | Maximum rpm                 |                            |
-| max_fuel              | float  | Maximum fuel tank capacity  | why float ? idk ask kunos  |
-| penalty_enabled       | bool   | Penalties enabled           |                            |
-| aid_fuel_rate         | float  | Fuel consumption rate       | from 0.0 to 1.0            |
-| aid_tyre_rate         | float  | Tyre wear rate              | from 0.0 to 1.0            |
-| aid_mechanical_damage | float  | Mechanical damage rate      | from 0.0 to 1.0            |
-| aid_stability         | float  | Stability control used      | from 0.0 to 1.0            |
-| aid_auto_clutch       | bool   | Auto clutch used            |                            |
-| pit_window_start      | int    | Pit window opening time     |                            |
-| pit_window_end        | int    | Pit windows closing time    |                            |
-| is_online             | bool   | If is a multiplayer session |                            |
-| dry_tyres_name        | string | Name of the dry tyres       |                            |
-| wet_tyres_name        | string | Name of the wet tyres       |                            |
+## StaticsMap
+
+| Field                      | Type        | Description                                      |
+|----------------------------|-------------|--------------------------------------------------|
+| sm_version                 | string      | Shared memory version.                          |
+| ac_version                 | string      | AC version.                                     |
+| number_of_session          | int         | Number of sessions.                              |
+| num_cars                   | int         | Total number of cars.                            |
+| car_model                  | string      | Player's car model.                              |
+| track                      | string      | Track name.                                      |
+| player_name                | string      | Player’s first name.                             |
+| player_surname             | string      | Player’s surname.                                |
+| player_nick                | string      | Player’s nickname.                               |
+| sector_count               | int         | Number of track sectors.                         |
+| max_torque                 | float       | Maximum engine torque.                           |
+| max_power                  | float       | Maximum engine power.                            |
+| max_rpm                    | int         | Maximum RPM.                                     |
+| max_fuel                   | float       | Max fuel tank capacity.                          |
+| suspension_max_travel      | List[float] | Suspension max travel per wheel.                 |
+| tyre_radius                | List[float] | Radius of each tyre.                             |
+| max_turbo_boost            | float       | Maximum turbo boost.                             |
+| penalty_enabled            | bool        | Whether penalties are active.                    |
+| aid_fuel_rate              | float       | Fuel consumption multiplier.                     |
+| aid_tyre_rate              | float       | Tyre wear multiplier.                            |
+| aid_mechanical_damage      | float       | Mechanical damage multiplier.                    |
+| allow_tyre_blankets        | int         | Whether tyre blankets are allowed.               |
+| aid_stability              | float       | Stability control level.                         |
+| aid_auto_clutch            | bool        | Auto clutch enabled.                             |
+| aid_auto_blip              | int         | Auto throttle blip enabled.                      |
+| has_drs                    | int         | Car supports DRS.                                |
+| has_ers                    | int         | Car supports ERS.                                |
+| has_kers                   | int         | Car supports KERS.                               |
+| ker_max_joules             | float       | KERS max joules.                                 |
+| engine_brake_settings_count| int         | Number of engine braking settings.               |
+| ers_power_controller_count | int         | Number of ERS power controller levels.           |
+| track_sp_line_length       | float       | Track spline line length.                        |
+| track_configuration        | string      | Specific track layout.                           |
+| ers_max_j                  | float       | Max ERS Joules.                                  |
+| is_timed_race              | int         | Is the race time-limited.                        |
+| has_extra_lap              | int         | Whether there is an extra lap after the timer.   |
+| car_skin                   | string      | Skin (livery) name.                              |
+| reversed_grid_positions    | int         | Reversed grid position count.                    |
+| pit_window_start           | int         | Start of pit window (ms).                        |
+| pit_window_end             | int         | End of pit window (ms).                          |
 
 ### Wheels
 
@@ -327,95 +304,42 @@ Description are moslty a copy past of the ACCSharedMemoryDocumentationV1.x.x.pdf
 
 ### Enums
 
-#### ACC_STATUS
+#### AC_STATUS
 
 | Name       | Value |
 | ---------- | ----- |
-| ACC_OFF    | 0     |
-| ACC_REPLAY | 1     |
-| ACC_LIVE   | 2     |
-| ACC_PAUSE  | 3     |
+| AC_OFF    | 0     |
+| AC_REPLAY | 1     |
+| AC_LIVE   | 2     |
+| AC_PAUSE  | 3     |
 
-#### ACC_SESSION_TYPE
+#### AC_SESSION_TYPE
 
 | Name                | Value |
 | ------------------- | ----- |
-| ACC_UNKNOW          | -1    |
-| ACC_PRACTICE        | 0     |
-| ACC_QUALIFY         | 1     |
-| ACC_RACE            | 2     |
-| ACC_HOTLAP          | 3     |
-| ACC_TIME_ATTACK     | 4     |
-| ACC_DRIFT           | 5     |
-| ACC_DRAG            | 6     |
-| ACC_HOTSTINT        | 7     |
-| ACC_HOTLAPSUPERPOLE | 8     |
+| AC_UNKNOW          | -1    |
+| AC_PRACTICE        | 0     |
+| AC_QUALIFY         | 1     |
+| AC_RACE            | 2     |
+| AC_HOTLAP          | 3     |
+| AC_TIME_ATTACK     | 4     |
+| AC_DRIFT           | 5     |
+| AC_DRAG            | 6     |
 
-#### ACC_FLAG_TYPE
+
+#### AC_FLAG_TYPE
 
 | Name               | Value |
 | ------------------ | ----- |
-| ACC_NO_FLAG        | 0     |
-| ACC_BLUE_FLAG      | 1     |
-| ACC_YELLOW_FLAG    | 2     |
-| ACC_BLACK_FLAG     | 3     |
-| ACC_WHITE_FLAG     | 4     |
-| ACC_CHECKERED_FLAG | 5     |
-| ACC_PENALTY_FLAG   | 6     |
-| ACC_GREEN_FLAG     | 7     |
-| ACC_ORANGE_FLAG    | 8     |
+| AC_NO_FLAG        | 0     |
+| AC_BLUE_FLAG      | 1     |
+| AC_YELLOW_FLAG    | 2     |
+| AC_BLACK_FLAG     | 3     |
+| AC_WHITE_FLAG     | 4     |
+| AC_CHECKERED_FLAG | 5     |
+| AC_PENALTY_FLAG   | 6     |
 
-#### ACC_PENALTY_TYPE
 
-| Name                                  | Value |
-| ------------------------------------- | ----- |
-| Unknown                               | -1    |
-| No_penalty                            | 0     |
-| DriveThrough_Cutting                  | 1     |
-| StopAndGo_10_Cutting                  | 2     |
-| StopAndGo_20_Cutting                  | 3     |
-| StopAndGo_30_Cutting                  | 4     |
-| Disqualified_Cutting                  | 5     |
-| RemoveBestLaptime_Cutting             | 6     |
-| DriveThrough_PitSpeeding              | 7     |
-| StopAndGo_10_PitSpeeding              | 8     |
-| StopAndGo_20_PitSpeeding              | 9     |
-| StopAndGo_30_PitSpeeding              | 10    |
-| Disqualified_PitSpeeding              | 11    |
-| RemoveBestLaptime_PitSpeeding         | 12    |
-| Disqualified_IgnoredMandatoryPit      | 13    |
-| PostRaceTime                          | 14    |
-| Disqualified_Trolling                 | 15    |
-| Disqualified_PitEntry                 | 16    |
-| Disqualified_PitExit                  | 17    |
-| ~~Disqualified_WrongWay~~  ????       | 18    |
-| DriveThrough_IgnoredDriverStint       | 19    |
-| Disqualified_IgnoredDriverStint       | 20    |
-| Disqualified_ExceededDriverStintLimit | 21    |
-| Disqualified_WrongWay                 | 22    |
-
-#### ACC_TRACK_GRIP_STATUS
-
-| Name        | Value |
-| ----------- | ----- |
-| ACC_GREEN   | 0     |
-| ACC_FAST    | 1     |
-| ACC_OPTIMUM | 2     |
-| ACC_GREASY  | 3     |
-| ACC_DAMP    | 4     |
-| ACC_WET     | 5     |
-| ACC_FLOODED | 6     |
-
-#### ACC_RAIN_INTENSITY
-
-| Name             | Value |
-| ---------------- | ----- |
-| ACC_NO_RAIN      | 0     |
-| ACC_DRIZZLE      | 1     |
-| ACC_LIGHT_RAIN   | 2     |
-| ACC_MEDIUM_RAIN  | 3     |
-| ACC_HEAVY_RAIN   | 4     |
-| ACC_THUNDERSTORM | 5     |
 
 ### Car Model
 

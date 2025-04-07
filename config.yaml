@@ -1,9 +1,18 @@
 mqtt:
   enabled: true
-  host: "localhost" 
+  host: "localhost"  ## <--- Add IP of client PC here
   port: 9001
 
 udp:
-  enabled: true
+  enabled: false
   host: "localhost" 
   port: 9002
+
+output:
+  save: false
+
+client:
+  subscribe_events: true
+  subscribe_telemetry: true
+  plot_telemetry: false
+  save_csv: false
