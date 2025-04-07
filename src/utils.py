@@ -55,13 +55,6 @@ class Config:
 
     _instance = None
 
-    # def __new__(cls, config_path="config.yaml"):
-    #     if cls._instance is None:
-    #         with open(config_path, "r") as file:
-    #             cls._instance = super(Config, cls).__new__(cls)
-    #             cls._instance.config_data = yaml.safe_load(file)
-    #     return cls._instance
-
     def __new__(cls, config_path="config.yaml"):
         if cls._instance is None:
             # If running in a PyInstaller bundle, use the directory of the executable

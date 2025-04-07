@@ -58,7 +58,6 @@ def on_connect(client, userdata, flags, rc, properties=None):
 
 def on_message(client, userdata, msg):
     payload_str = msg.payload.decode()
-    print("new message on topic: ", msg.topic)
 
     if "event" in msg.topic:
         print(f"{msg.topic} {payload_str}\n")
@@ -72,18 +71,19 @@ def on_message(client, userdata, msg):
             return
 
         graphics_info = data.get("graphics_info", {})
+        physics_info = data.get("physics_info", {})
 
         if save_csv:
-            write_to_csv(graphics_info)
+            write_to_csv(physics_info)
 
         if plot_telemetry:
             graphics_info = data.get("graphics_info", {})
             car_coordinates = graphics_info.get("car_coordinates", {})
-            x = -car_coordinates.get("z")
-            z = -car_coordinates.get("x")
+            x = car_coordinates.get("z")
+            y = car_coordinates.get("x")
 
-            if x is not None and z is not None:
-                car_positions.append((x, z))
+            if x is not None and y is not None:
+                car_positions.append((x, y))
 
 
 def live_plotter():

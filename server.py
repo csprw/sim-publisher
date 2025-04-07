@@ -72,6 +72,7 @@ class AcUdpMqttForwarder:
                 if (now - last_physics_read) >= self.physics_interval:
                     physics = read_physic_map(self.asm.physicSM)
                     graphics = read_graphics_map(self.asm.graphicSM)
+
                 if (now - last_static_read) >= self.static_interval:
                     statics = read_static_map(self.asm.staticSM)
 
@@ -158,9 +159,6 @@ class AcUdpMqttForwarder:
                         if self.save_output:
                             with open("telemetry.json", "w") as fp:
                                 json.dump(data, fp, indent=4)
-
-                # Sleep to avoid busy-wait
-                time.sleep(0.001)
 
                 # Sleep to avoid busy-wait
                 time.sleep(0.001)
